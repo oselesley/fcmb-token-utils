@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 using FcmbTokenUtils.Dtos;
 using FcmbTokenUtils.Models;
@@ -11,26 +12,31 @@ namespace FcmbTokenUtils
     {
         HttpClient client = new HttpClient();
 
+        /// <summary>
+        /// Returns a Token entity gotten from a remote resource if the
+        /// token doesn't already exist in the file or if the token has expired
+        /// </summary>
+        /// <param name="FileName"></param>
+        /// <returns>A TokenEntity Object</returns>
         public TokenEntity GetToken(string FileName)
         {
             FileName = Directory.GetParent(".").Parent.Parent + "/Token/token.txt";
             string token = "";
+            
 
             if (TokenExists(FileName))
             {
-                token = FetchTokenFromFile(FileName);
-              
+                TokenResponseDto tokenObj = FetchTokenFromFile(FileName);
+                if (tokenObj.ExpiresIn.CompareTo(DateTime.UtcNow) <= 0 || DateTime.UtcNow.Subtract(tokenObj.ExpiresIn).TotalDays == 1)
+                {
+                    TokenResponseDto content = FetchToken("", new object()).Result;
+                    SaveToken(FileName, content);
+                }
+
             } else
             {
-                HttpResponseMessage response = client.PostAsJsonAsync("api/generateToken", new Object()).Result;
-                response.EnsureSuccessStatusCode();
-
-                TokenResponseDto content = response.Content.ReadAsAsync<TokenResponseDto>().Result;
-
-                token = content.AccessToken;
-                SaveToken(FileName, token);
-
-
+                TokenResponseDto content = FetchToken("", new object()).Result;
+                SaveToken(FileName, content);
             }
 
             TokenEntity tokenEntity = new TokenEntity
@@ -47,8 +53,28 @@ namespace FcmbTokenUtils
 
             return tokenEntity;
         }
+        
+        /// <summary>
+        /// Fetches the Access Token from a remote resource
+        /// </summary>
+        /// <param name="Path">Path to remote resource</param>
+        /// <param name="RequestDto">The RequestDto Carrying data needed to fulfill the request</param>
+        /// <returns>An Asynchrounous Task</returns>
+        private async Task<TokenResponseDto> FetchToken(string Path, Object RequestDto)
+        {
+            HttpResponseMessage response = await client.PostAsJsonAsync(Path, RequestDto);
+            response.EnsureSuccessStatusCode();
 
-        public void SaveToken(string FileName, string token)
+            TokenResponseDto content = await response.Content.ReadAsAsync<TokenResponseDto>();
+            return content;
+        }
+
+        /// <summary>
+        /// Saves the Token to a file
+        /// </summary>
+        /// <param name="FileName"></param>
+        /// <param name="trd"></param>
+        private void SaveToken(string FileName, TokenResponseDto trd)
         {
             Console.WriteLine("started saving");
 
@@ -56,13 +82,13 @@ namespace FcmbTokenUtils
              new StreamWriter(FileName))
                
             {
-                file.Write(token);
+                file.Write("{0},{1}", trd.AccessToken, trd.ExpiresIn);
             }
 
             Console.WriteLine("done saving");
         }
 
-        public bool TokenExists(string FileName)
+        private bool TokenExists(string FileName)
         {
             using (StreamReader file =
              new StreamReader(FileName))
@@ -73,14 +99,20 @@ namespace FcmbTokenUtils
 
         }
 
-        public string FetchTokenFromFile (string FileName)
+        private TokenResponseDto FetchTokenFromFile (string FileName)
         {
+            TokenResponseDto trd = new TokenResponseDto();
+      
             using (StreamReader file =
             new StreamReader(FileName))
 
             {
-                return file.ReadLine();
+                 string[] line = file.ReadLine().Split();
+                trd.AccessToken = line[0].Trim();
+                trd.ExpiresIn = Convert.ToDateTime(long.Parse(line[1]));
             }
+
+            return trd;
         }
     }
 }
