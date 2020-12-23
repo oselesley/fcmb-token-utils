@@ -9,8 +9,7 @@ namespace FcmbTokenUtils
 
         static void Main (string[] args)
         {
-            TokenUtilities tk = new TokenUtilities();
-            tk.GetToken("");
+            
         }
 
     }

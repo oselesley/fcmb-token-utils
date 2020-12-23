@@ -18,40 +18,33 @@ namespace FcmbTokenUtils
         /// </summary>
         /// <param name="FileName"></param>
         /// <returns>A TokenEntity Object</returns>
-        public TokenEntity GetToken(string FileName)
+        public TokenResponseDto GetToken(string FileName)
         {
             FileName = Directory.GetParent(".").Parent.Parent + "/Token/token.txt";
-            string token = "";
+            TokenResponseDto tokenObj = null;
             
 
             if (TokenExists(FileName))
             {
-                TokenResponseDto tokenObj = FetchTokenFromFile(FileName);
+                tokenObj = FetchTokenFromFile(FileName);
                 if (tokenObj.ExpiresIn.CompareTo(DateTime.UtcNow) <= 0 || DateTime.UtcNow.Subtract(tokenObj.ExpiresIn).TotalDays == 1)
                 {
-                    TokenResponseDto content = FetchToken("", new object()).Result;
-                    SaveToken(FileName, content);
+                    tokenObj = FetchToken("", new object()).Result;
+                    SaveToken(FileName, tokenObj);
                 }
 
             } else
             {
-                TokenResponseDto content = FetchToken("", new object()).Result;
-                SaveToken(FileName, content);
+                tokenObj = FetchToken("", new object()).Result;
+                SaveToken(FileName, tokenObj);
             }
 
-            TokenEntity tokenEntity = new TokenEntity
-            {
-                AccessToken = token,
-                RefreshToken = "some refresh token",
-                Scope = "some scope",
-                ExpiresIn = DateTime.UtcNow.AddDays(4),
-                TokenType = "bearee"
-            };
+           
 
 
           
 
-            return tokenEntity;
+            return tokenObj;
         }
         
         /// <summary>
@@ -82,7 +75,7 @@ namespace FcmbTokenUtils
              new StreamWriter(FileName))
                
             {
-                file.Write("{0},{1}", trd.AccessToken, trd.ExpiresIn);
+                file.Write("{0},{1},{2},{3},{4}", trd.AccessToken, trd.ExpiresIn, trd.Scope, trd.RefreshToken, trd.TokenType);
             }
 
             Console.WriteLine("done saving");
@@ -101,15 +94,18 @@ namespace FcmbTokenUtils
 
         private TokenResponseDto FetchTokenFromFile (string FileName)
         {
-            TokenResponseDto trd = new TokenResponseDto();
+            TokenResponseDto trd = null;
       
             using (StreamReader file =
             new StreamReader(FileName))
 
             {
-                 string[] line = file.ReadLine().Split();
+                string[] line = file.ReadLine().Split();
                 trd.AccessToken = line[0].Trim();
                 trd.ExpiresIn = Convert.ToDateTime(long.Parse(line[1]));
+                trd.Scope = line[2];
+                trd.RefreshToken = line[3];
+                trd.TokenType = line[4];
             }
 
             return trd;
