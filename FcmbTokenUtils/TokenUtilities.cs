@@ -11,6 +11,8 @@ namespace FcmbTokenUtils
     public class TokenUtilities
     {
         HttpClient client = new HttpClient();
+        public string GenerateTokenUri { get; set; } = "";
+
 
         /// <summary>
         /// Returns a Token entity gotten from a remote resource if the
@@ -29,7 +31,7 @@ namespace FcmbTokenUtils
                 tokenObj = FetchTokenFromFile(FileName);
                 if (tokenObj.ExpiresIn.CompareTo(DateTime.UtcNow) <= 0 || DateTime.UtcNow.Subtract(tokenObj.ExpiresIn).TotalDays == 1)
                 {
-                    tokenObj = FetchToken("", new object()).Result;
+                    tokenObj = FetchToken(GenerateTokenUri, new object()).Result;
                     SaveToken(FileName, tokenObj);
                 }
 
@@ -67,10 +69,9 @@ namespace FcmbTokenUtils
         /// </summary>
         /// <param name="FileName"></param>
         /// <param name="trd"></param>
-        private void SaveToken(string FileName, TokenResponseDto trd)
+        public void SaveToken(string FileName, TokenResponseDto trd)
         {
-            Console.WriteLine("started saving");
-
+            CreateDirectory(FileName);
             using (StreamWriter file =
              new StreamWriter(FileName))
                
@@ -81,34 +82,48 @@ namespace FcmbTokenUtils
             Console.WriteLine("done saving");
         }
 
-        private bool TokenExists(string FileName)
+        public bool TokenExists(string FileName)
         {
+            if (!File.Exists(FileName)) return false;
+
             using (StreamReader file =
              new StreamReader(FileName))
 
             {
-                return new FileInfo(FileName).Length == 0;
+                return new FileInfo(FileName).Length > 0;
             }
 
         }
 
-        private TokenResponseDto FetchTokenFromFile (string FileName)
+        public TokenResponseDto FetchTokenFromFile (string FileName)
         {
-            TokenResponseDto trd = null;
+            TokenResponseDto trd = new TokenResponseDto();
       
             using (StreamReader file =
             new StreamReader(FileName))
 
             {
-                string[] line = file.ReadLine().Split();
+                // new DateTime(long.Parse(line[1].Trim()));
+                // Convert.ToDateTime(long.Parse(line[1].Trim()))
+                string[] line = file.ReadLine().Split(",");
                 trd.AccessToken = line[0].Trim();
-                trd.ExpiresIn = Convert.ToDateTime(long.Parse(line[1]));
-                trd.Scope = line[2];
-                trd.RefreshToken = line[3];
-                trd.TokenType = line[4];
+                Console.WriteLine(line[1].Trim());
+                trd.ExpiresIn = Convert.ToDateTime(line[1].Trim());
+                trd.Scope = line[2].Trim(); ;
+                trd.RefreshToken = line[3].Trim(); ;
+                trd.TokenType = line[4].Trim(); ;
             }
 
             return trd;
+        }
+
+        private void CreateDirectory(string FileName)
+        {
+            FileInfo fi = new FileInfo(FileName);
+            if (!fi.Directory.Exists)
+            {
+                Directory.CreateDirectory(fi.DirectoryName);
+            }
         }
     }
 }
