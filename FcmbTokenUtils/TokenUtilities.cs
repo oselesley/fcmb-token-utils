@@ -69,7 +69,7 @@ namespace FcmbTokenUtils
         /// </summary>
         /// <param name="FileName"></param>
         /// <param name="trd"></param>
-        public void SaveToken(string FileName, TokenResponseDto trd)
+        private void SaveToken(string FileName, TokenResponseDto trd)
         {
             CreateDirectory(FileName);
             using (StreamWriter file =
@@ -82,7 +82,7 @@ namespace FcmbTokenUtils
             Console.WriteLine("done saving");
         }
 
-        public bool TokenExists(string FileName)
+        private bool TokenExists(string FileName)
         {
             if (!File.Exists(FileName)) return false;
 
@@ -95,7 +95,7 @@ namespace FcmbTokenUtils
 
         }
 
-        public TokenResponseDto FetchTokenFromFile (string FileName)
+        private TokenResponseDto FetchTokenFromFile (string FileName)
         {
             TokenResponseDto trd = new TokenResponseDto();
       
@@ -103,8 +103,6 @@ namespace FcmbTokenUtils
             new StreamReader(FileName))
 
             {
-                // new DateTime(long.Parse(line[1].Trim()));
-                // Convert.ToDateTime(long.Parse(line[1].Trim()))
                 string[] line = file.ReadLine().Split(",");
                 trd.AccessToken = line[0].Trim();
                 Console.WriteLine(line[1].Trim());
