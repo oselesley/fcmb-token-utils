@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using FcmbTokenUtils.Dtos;
-using FcmbTokenUtils.Models;
 
 namespace FcmbTokenUtils
 {
@@ -12,6 +11,7 @@ namespace FcmbTokenUtils
     {
         HttpClient client = new HttpClient();
         public string GenerateTokenUri { get; set; } = "";
+        public string FileName { get; set; } = Directory.GetParent(".").Parent.Parent + "/Token/token.txt";
 
 
         /// <summary>
@@ -20,9 +20,8 @@ namespace FcmbTokenUtils
         /// </summary>
         /// <param name="FileName"></param>
         /// <returns>A TokenEntity Object</returns>
-        public TokenResponseDto GetToken(string FileName)
+        public TokenResponseDto GetToken()
         {
-            FileName = Directory.GetParent(".").Parent.Parent + "/Token/token.txt";
             TokenResponseDto tokenObj = null;
             
 
@@ -37,7 +36,7 @@ namespace FcmbTokenUtils
 
             } else
             {
-                tokenObj = FetchToken("", new object()).Result;
+                tokenObj = FetchToken(GenerateTokenUri, new object()).Result;
                 SaveToken(FileName, tokenObj);
             }
 
